@@ -1,8 +1,9 @@
 package bguspl.set.ex;
 
 import bguspl.set.Env;
+import com.sun.tools.javac.util.Pair;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -99,7 +100,23 @@ public class Dealer implements Runnable {
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() {
-        // TODO implement
+        while(needAndCanDrawAnotherCard()){
+            table.placeCard(deck.remove(0));
+        }
+    }
+
+    private boolean needAndCanDrawAnotherCard() {
+        return table.hasEmptySlot() && (!deck.isEmpty());
+    }
+
+    private void shuffleTheDeck() {
+        Random rand = new Random();
+        for (int i = 0; i < deck.size(); i++) {
+            int j = rand.nextInt(deck.size());
+            int temp = deck.get(i);
+            deck.set(i, deck.get(j));
+            deck.set(j, temp);
+        }
     }
 
     /**
@@ -120,7 +137,19 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        // TODO implement
+        deck.addAll(table.giveBackCardsToDealer());
+        shuffleTheDeck();
+    }
+
+    /**
+    * Get a guess of a player
+    * */
+    private void checkPlayersGuess(Pair<Integer, int[]> playersGuess) {
+        if (env.util.testSet(playersGuess.snd)) {
+            players[(playersGuess.fst)].point();
+        } else {
+            players[playersGuess.fst].penalty();
+        }
     }
 
     /**

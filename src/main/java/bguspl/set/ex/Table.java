@@ -3,6 +3,7 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -127,5 +128,10 @@ public class Table {
     public boolean removeToken(int player, int slot) {
         // TODO implement
         return false;
+    }
+
+    public Collection<Integer> giveBackCardsToDealer() {
+        List<Integer> allCardsOnTable;
+        return allCardsOnTable;
     }
 }
