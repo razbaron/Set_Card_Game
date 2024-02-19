@@ -184,4 +184,7 @@ public class Dealer implements Runnable {
         }
         return new Pair<>(maxScore,count);
     }
+
+    public void checkMySet(int id, Integer[] playerToSlots) {
+    }
 }

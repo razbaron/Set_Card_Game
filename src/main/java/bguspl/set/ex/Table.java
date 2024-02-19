@@ -34,8 +34,6 @@ public class Table {
     protected List<Integer>[] tokensToPlayers;
     protected List<Integer>[] playersTokensToSlot;
 
-    protected List<Pair<Integer, Integer[]>> setsToBeChecked;
-
 
     /**
      * Constructor for testing.
@@ -57,7 +55,6 @@ public class Table {
         for (int i = 0; i < playersTokensToSlot.length; i++) {
             playersTokensToSlot[i] = new ArrayList<>();
         }
-        this.setsToBeChecked = new ArrayList<>();
     }
 
     /**
@@ -179,21 +176,29 @@ public class Table {
      */
     public void placeToken(int player, int slot) {
 
+        if (slotToCard[slot]==null) return;
+
         tokensToPlayers[slot].add(player);
         playersTokensToSlot[player].add(slot);
         env.ui.placeToken(player, slot);
-
-
-        // in case this is the 3rd placement, add it to the setsToBeChecked list(in the standard version, we keep play with any number of features)
-        if (playersTokensToSlot[player].size() == env.config.featureSize) {
-            setsToBeChecked.add(new Pair<>(player, getCardsListFromPlayerTokens(player)));
-        }
 
         // TODO implement - DONE
     }
 
     public boolean playerAlreadyPlacedThisToken(int player, int slot) {
         return playersTokensToSlot[player].contains(slot);
+    }
+
+    public boolean playerTokensIsFeatureSize(int player){
+        return playersTokensToSlot[player].size() == env.config.featureSize;
+    }
+
+    public Integer[] playerToSlots(int player){
+        Integer[] slots = new Integer[playersTokensToSlot[player].size()];
+        for (int i = 0; i<playersTokensToSlot.length;i++){
+            slots[i]=playersTokensToSlot[player].get(i);
+        }
+        return slots;
     }
 
     /**
@@ -215,17 +220,14 @@ public class Table {
         // TODO implement - DONE
     }
 
-    public Integer[] getCardsListFromPlayerTokens(int player) {
-        Integer[] listOfCards = new Integer[playersTokensToSlot[player].size()];
-        for (int i = 0; i < playersTokensToSlot[player].size(); i++) {
-            listOfCards[i] = slotToCard[playersTokensToSlot[player].get(i)];
-        }
-        return listOfCards;
-    }
 
-    public Collection<Integer> giveBackCardsToDealer() {
-        List<Integer> allCardsOnTable;
-//        TODO implement - collecting cards
+    public List<Integer> giveBackCardsToDealer() {
+        List<Integer> allCardsOnTable= new ArrayList<>();
+        for (int i = 0; i<slotToCard.length;i++){
+            if (slotToCard[i]!=null){
+                allCardsOnTable.add(slotToCard[i]);
+            }
+        }
         return allCardsOnTable;
     }
 }
