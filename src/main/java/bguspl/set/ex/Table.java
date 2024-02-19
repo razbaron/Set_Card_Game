@@ -1,7 +1,6 @@
 package bguspl.set.ex;
 
 import bguspl.set.Env;
-import com.sun.tools.javac.util.Pair;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -156,6 +155,12 @@ public class Table {
 
     }
 
+    public void removeAllCards() {
+        for (int i = 0; i < env.config.tableSize; i++) {
+            removeCard(i);
+        }
+    }
+
     private void tokensCleaner(int slot) {
         tokensToPlayers[slot] = new ArrayList<>();
         for (int i = 0; i < playersTokensToSlot.length; i++) {
@@ -176,7 +181,7 @@ public class Table {
      */
     public void placeToken(int player, int slot) {
 
-        if (slotToCard[slot]==null) return;
+        if (slotToCard[slot] == null) return;
 
         tokensToPlayers[slot].add(player);
         playersTokensToSlot[player].add(slot);
@@ -189,16 +194,21 @@ public class Table {
         return playersTokensToSlot[player].contains(slot);
     }
 
-    public boolean playerTokensIsFeatureSize(int player){
+    public boolean playerTokensIsFeatureSize(int player) {
         return playersTokensToSlot[player].size() == env.config.featureSize;
     }
 
-    public Integer[] playerToSlots(int player){
-        Integer[] slots = new Integer[playersTokensToSlot[player].size()];
-        for (int i = 0; i<playersTokensToSlot.length;i++){
-            slots[i]=playersTokensToSlot[player].get(i);
+    public Integer[] playerToCards(int player) {
+        Integer[] cards = new Integer[playersTokensToSlot[player].size()];
+        for (int i = 0; i < playersTokensToSlot.length; i++) {
+            cards[i] = slotToCard[playersTokensToSlot[player].get(i)];
         }
-        return slots;
+        return cards;
+    }
+
+    public Integer getSlotFromCard(Integer card) {
+        if (card > cardToSlot.length) throw new NoSuchElementException();
+        return cardToSlot[card];
     }
 
     /**
@@ -212,7 +222,7 @@ public class Table {
         if (tokensToPlayers[slot].contains(player)) {
             tokensToPlayers[slot].remove(tokensToPlayers[slot].indexOf(player));
             playersTokensToSlot[player].remove(playersTokensToSlot[player].indexOf(slot));
-            env.ui.removeToken(player,slot);
+            env.ui.removeToken(player, slot);
             return true;
         }
         return false;
@@ -220,14 +230,15 @@ public class Table {
         // TODO implement - DONE
     }
 
-
     public List<Integer> giveBackCardsToDealer() {
-        List<Integer> allCardsOnTable= new ArrayList<>();
-        for (int i = 0; i<slotToCard.length;i++){
-            if (slotToCard[i]!=null){
+        List<Integer> allCardsOnTable = new ArrayList<>();
+        for (int i = 0; i < slotToCard.length; i++) {
+            if (slotToCard[i] != null) {
                 allCardsOnTable.add(slotToCard[i]);
             }
         }
         return allCardsOnTable;
     }
+
+
 }
