@@ -34,6 +34,12 @@ public class Dealer implements Runnable {
     private volatile boolean terminate;
 
     /**
+    * The list of sets that player want to check
+    * */
+    protected List<Pair<Integer, Integer[]>> setsToBeChecked;
+
+
+    /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
     private long reshuffleTime = Long.MAX_VALUE;
@@ -130,6 +136,12 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
+//        I could have come here due to set that needs to be checked, or timeout
+//        After a set was checked I need to sleep
+        for (Pair<Integer, Integer[]> playerGuss :
+                setsToBeChecked) {
+
+        }
         // TODO implement
     }
 
@@ -144,12 +156,46 @@ public class Dealer implements Runnable {
     /**
     * Get a guess of a player
     * */
-    private void checkPlayersGuess(Pair<Integer, int[]> playersGuess) {
-        if (env.util.testSet(playersGuess.snd)) {
+    private void checkPlayersGuess(Pair<Integer, Integer[]> playersGuess) {
+
+        if (env.util.testSet(convertIntToInteger(playersGuess.snd))) {
             players[(playersGuess.fst)].point();
+            removeCollisionsForGivenSet(playersGuess);
         } else {
             players[playersGuess.fst].penalty();
         }
+    }
+
+    private int[] convertIntToInteger(Integer[] arr){
+        int[] convertedArr = new int[arr.length];
+        for (int i = 0; i < arr.length; i++) {
+            convertedArr[i] = arr[i];
+        }
+        return convertedArr;
+    }
+
+    /**
+     * In case of a set check whether other players claimed a set with one of the cards
+     * */
+    private void removeCollisionsForGivenSet(Pair<Integer, Integer[]> validatedSet){
+        Iterator<Pair<Integer, Integer[]>> iterator = setsToBeChecked.iterator();
+        while (iterator.hasNext()) {
+            Pair<Integer, Integer[]> pair = iterator.next();
+
+            if (checkCollision(validatedSet.snd, pair.snd)) {
+                iterator.remove(); // Remove the current pair from the list
+            }
+        }
+    }
+    private static boolean checkCollision(Integer[] set1, Integer[] set2) {
+        Set<Integer> set1Elements = new HashSet<>(Arrays.asList(set1));
+
+        for (Integer element : set2) {
+            if (set1Elements.contains(element)) {
+                return true; // Collision found
+            }
+        }
+        return false; // No collision
     }
 
     /**
