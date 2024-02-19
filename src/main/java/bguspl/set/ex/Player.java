@@ -160,7 +160,7 @@ public class Player implements Runnable {
         } else {
             table.placeToken(id, slot);
             if (table.playerTokensIsFeatureSize(id)) {
-                dealer.checkMySet(id, table.playerToSlots(id));
+                dealer.checkMySet(id, table.playerToCards(id));
                 return true;
             }
 
