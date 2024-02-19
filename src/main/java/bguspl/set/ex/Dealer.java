@@ -156,6 +156,32 @@ public class Dealer implements Runnable {
      * Check who is/are the winner/s and displays them.
      */
     private void announceWinners() {
-        // TODO implement
+        Pair<Integer, Integer> maxAndQuantity = findPlayersMaxScoreAndQuantity();
+        int[] winnersId = new int[maxAndQuantity.snd];
+        int availableIndex = 0;
+
+        for (int i = 0; i < players.length; i++) {
+            if (players[i].score() == maxAndQuantity.fst) {
+                winnersId[availableIndex] = i;
+                availableIndex++;
+            }
+        }
+        env.ui.announceWinner(winnersId);
+    }
+
+    private Pair<Integer, Integer> findPlayersMaxScoreAndQuantity(){
+        int maxScore = players[0].score();
+        int count = 1;
+
+        for (int i = 1; i < players.length; i++) {
+            int score = players[i].score();
+            if (score > maxScore) {
+                maxScore = score;
+                count = 1;
+            } else if (score == maxScore) {
+                count++;
+            }
+        }
+        return new Pair<>(maxScore,count);
     }
 }
