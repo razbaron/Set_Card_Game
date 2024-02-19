@@ -37,7 +37,7 @@ public class Dealer implements Runnable {
     * The list of sets that player want to check
     * */
     protected List<Pair<Integer, Integer[]>> setsToBeChecked;
-
+    private final int ZERO = 0;
 
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
@@ -83,7 +83,19 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated.
      */
     public void terminate() {
+        terminate = true;
+        terminateAllPlayers();
+
+        //to interrupt dealer thread
+
+
         // TODO implement
+    }
+
+    private void terminateAllPlayers(){
+        for (int i = 0 ; i<players.length;i++){
+            players[i].terminate();
+        }
     }
 
     /**
@@ -107,7 +119,7 @@ public class Dealer implements Runnable {
      */
     private void placeCardsOnTable() {
         while(needAndCanDrawAnotherCard()){
-            table.placeCard(deck.remove(0));
+            table.placeCard(deck.remove(ZERO));
         }
     }
 
