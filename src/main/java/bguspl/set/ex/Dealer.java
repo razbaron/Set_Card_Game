@@ -34,10 +34,11 @@ public class Dealer implements Runnable {
     private volatile boolean terminate;
 
     /**
-    * The list of sets that player want to check
-    * */
+     * The list of sets that player want to check
+     */
     protected List<Integer> setsToBeChecked;
     private final int ZERO = 0;
+    private Thread dealerThread;
 
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
@@ -48,7 +49,8 @@ public class Dealer implements Runnable {
         this.env = env;
         this.table = table;
         this.players = players;
-        deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
+        this.deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
+
     }
 
     /**
@@ -57,6 +59,7 @@ public class Dealer implements Runnable {
     @Override
     public void run() {
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
+        dealerThread = Thread.currentThread();
         while (!shouldFinish()) {
             placeCardsOnTable();
             timerLoop();
@@ -85,15 +88,14 @@ public class Dealer implements Runnable {
     public void terminate() {
         terminate = true;
         terminateAllPlayers();
+        dealerThread.interrupt();
 
-        //to interrupt dealer thread
 
-
-        // TODO implement
+        // TODO implement - DONE
     }
 
-    private void terminateAllPlayers(){
-        for (int i = 0 ; i<players.length;i++){
+    private void terminateAllPlayers() {
+        for (int i = 0; i < players.length; i++) {
             players[i].terminate();
         }
     }
@@ -113,7 +115,7 @@ public class Dealer implements Runnable {
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-        while(!setsToBeChecked.isEmpty()){
+        while (!setsToBeChecked.isEmpty()) {
 
         }
 //        check while queue is empty
@@ -128,7 +130,7 @@ public class Dealer implements Runnable {
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() {
-        while(needAndCanDrawAnotherCard()){
+        while (needAndCanDrawAnotherCard()) {
             table.placeCard(deck.remove(ZERO));
         }
     }
@@ -151,6 +153,11 @@ public class Dealer implements Runnable {
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
     private void sleepUntilWokenOrTimeout() {
+        try {
+            dealerThread.wait(env.config.tableDelayMillis);
+        } catch (InterruptedException ignored) {
+        }
+
         // TODO implement
     }
 
@@ -158,7 +165,11 @@ public class Dealer implements Runnable {
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        // TODO implement
+        if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+        long timeLeft = reshuffleTime - System.currentTimeMillis() > ZERO ? reshuffleTime - System.currentTimeMillis() : ZERO;
+        env.ui.setCountdown(timeLeft, timeLeft<env.config.endGamePauseMillies);
+
+        // TODO implement - DONE
     }
 
     /**
@@ -171,8 +182,8 @@ public class Dealer implements Runnable {
     }
 
     /**
-    * Get a guess of a player
-    * */
+     * Get a guess of a player
+     */
     private void checkPlayersGuess(Integer playerIdGuess) {
         Integer[] playerSetCards = table.playerToCards();
         if (env.util.testSet(convertIntToInteger(playerSetCards))) {
@@ -183,7 +194,7 @@ public class Dealer implements Runnable {
         }
     }
 
-    private int[] convertIntToInteger(Integer[] arr){
+    private int[] convertIntToInteger(Integer[] arr) {
         int[] convertedArr = new int[arr.length];
         for (int i = 0; i < arr.length; i++) {
             convertedArr[i] = arr[i];
@@ -193,11 +204,12 @@ public class Dealer implements Runnable {
 
     /**
      * In case of a set check whether other players claimed a set with one of the cards
-     * */
-    private void removeCollisionsForGivenSet(Integer[] validatedSet){
+     */
+    private void removeCollisionsForGivenSet(Integer[] validatedSet) {
         // Remove the current pair from the list
         setsToBeChecked.removeIf(playerIdToCheck -> checkCollision(validatedSet, playerIdToCheck));
     }
+
     private boolean checkCollision(Integer[] validatedGuess, Integer playerIdToCheck) {
         Set<Integer> setOfGuess = new HashSet<>(Arrays.asList(validatedGuess));
 
@@ -226,7 +238,7 @@ public class Dealer implements Runnable {
         env.ui.announceWinner(winnersId);
     }
 
-    private Pair<Integer, Integer> findPlayersMaxScoreAndQuantity(){
+    private Pair<Integer, Integer> findPlayersMaxScoreAndQuantity() {
         int maxScore = players[0].score();
         int count = 1;
 
@@ -239,9 +251,10 @@ public class Dealer implements Runnable {
                 count++;
             }
         }
-        return new Pair<>(maxScore,count);
+        return new Pair<>(maxScore, count);
     }
 
-    public void checkMySet(int id, Integer[] playerToSlots) {
+    public void checkMySet(int id) {
+        setsToBeChecked.add(id);
     }
 }

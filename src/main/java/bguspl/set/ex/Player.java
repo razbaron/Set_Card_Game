@@ -76,6 +76,7 @@ public class Player implements Runnable {
         this.human = human;
         this.dealer = dealer;
         this.inputQueue = new ArrayBlockingQueue<>(env.config.featureSize);
+
     }
 
     /**
@@ -116,7 +117,7 @@ public class Player implements Runnable {
                 keyPressed(r.nextInt(env.config.tableSize));
                 try {
                     synchronized (this) {
-                        wait();
+                        wait(env.config.tableDelayMillis);
                     }
                 } catch (InterruptedException ignored) {
                 }
@@ -146,21 +147,25 @@ public class Player implements Runnable {
             inputQueue.put(slot);
         } catch (InterruptedException ignored) {
         }
-
-
         // TODO implement - DONE - to add locks
     }
 
+
     private boolean handleKeyPress() throws InterruptedException {
         int slot = inputQueue.take();
-
+        //In case of penalty, accept ONLY key presses that remove one of the current tokens
+        while (table.playerTokensIsFeatureSize(id) && !table.playerAlreadyPlacedThisToken(id, slot)) {
+            slot = inputQueue.take();
+        }
+        //check if remove or place
         if (table.playerAlreadyPlacedThisToken(id, slot)) {
             table.removeToken(id, slot);
             return false;
         } else {
             table.placeToken(id, slot);
+            //In case its a set size - send to dealer to check
             if (table.playerTokensIsFeatureSize(id)) {
-                dealer.checkMySet(id, table.playerToCards(id));
+                dealer.checkMySet(id);
                 return true;
             }
 
