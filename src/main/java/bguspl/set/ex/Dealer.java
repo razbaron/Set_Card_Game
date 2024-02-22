@@ -1,7 +1,6 @@
 package bguspl.set.ex;
 
 import bguspl.set.Env;
-import com.sun.tools.javac.util.Pair;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -267,33 +266,34 @@ public class Dealer implements Runnable {
      * Check who is/are the winner/s and displays them.
      */
     private void announceWinners() {
-        Pair<Integer, Integer> maxAndQuantity = findPlayersMaxScoreAndQuantity();
-        int[] winnersId = new int[maxAndQuantity.snd];
-        int availableIndex = 0;
-
+        int maxScore = findPlayersMaxScore();
+        ArrayList<Integer> winnersId = new ArrayList<>();
         for (int i = 0; i < players.length; i++) {
-            if (players[i].score() == maxAndQuantity.fst) {
-                winnersId[availableIndex] = i;
-                availableIndex++;
+            if (players[i].score() == maxScore) {
+                winnersId.add(players[i].id);
             }
         }
-        env.ui.announceWinner(winnersId);
+        env.ui.announceWinner(convertArrayListToArr(winnersId));
     }
 
-    private Pair<Integer, Integer> findPlayersMaxScoreAndQuantity() {
-        int maxScore = players[0].score();
-        int count = 1;
+    private int[] convertArrayListToArr(ArrayList<Integer> winnersId) {
+        int[] arr = new int[winnersId.size()];
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = winnersId.get(i);
+        }
+        return arr;
+    }
 
+
+    private int findPlayersMaxScore() {
+        int maxScore = players[0].score();
         for (int i = 1; i < players.length; i++) {
             int score = players[i].score();
             if (score > maxScore) {
                 maxScore = score;
-                count = 1;
-            } else if (score == maxScore) {
-                count++;
             }
         }
-        return new Pair<>(maxScore, count);
+        return maxScore;
     }
 
     public void checkMySet(int id) {
