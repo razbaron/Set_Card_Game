@@ -38,6 +38,7 @@ public class Dealer implements Runnable {
      * The list of sets that player want to check
      */
     private final int ZERO = 0;
+    private final int ONE = 1;
     private Thread dealerThread;
 
     /**
@@ -62,13 +63,26 @@ public class Dealer implements Runnable {
     public void run() {
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
         dealerThread = Thread.currentThread();
+
+        table.writeLock.lock();
+        createPlayersThread();
+
         while (!shouldFinish()) {
+            shuffleTheDeck();
             placeCardsOnTable();
+            table.writeLock.unlock();
+            updateTimerDisplay(true);
             timerLoop();
             updateTimerDisplay(false);
+            table.writeLock.lock();
             removeAllCardsFromTable();
         }
+        table.writeLock.unlock();
+
         announceWinners();
+        terminate();
+        joinPlayers();
+
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -96,9 +110,21 @@ public class Dealer implements Runnable {
         // TODO implement - DONE
     }
 
-    private void terminateAllPlayers() {
+    private void createPlayersThread() {
         for (int i = 0; i < players.length; i++) {
+            new Thread(players[i], "player " + i).start();
+        }
+    }
+
+    private void terminateAllPlayers() {
+        for (int i = players.length - ONE; i >= ZERO; i--) {
             players[i].terminate();
+        }
+    }
+
+    private void joinPlayers() {
+        for (int i = 0; i < players.length; i++) {
+            players[i].joinPlayerThread();
         }
     }
 
@@ -118,19 +144,18 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
         while (!playersIdWithSet.isEmpty()) {
-            if (table.writeLock.tryLock()){
-                Integer playerId = playersIdWithSet.remove();
-                Integer[] playerSetCards = table.playerToCards(playerId);
-                if (checkPlayersGuess(playerSetCards)) {
-                    players[playerId].point();
-                    updateTableSetWasClaimed(playerSetCards);
-                    removeCollisionsInListForGivenSet(playerSetCards);
-                    updateTimerDisplay(true);
-                } else {
-                    players[playerId].penalty();
-                }
-                players[playerId].notify();
+            table.writeLock.lock();
+            Integer playerId = playersIdWithSet.remove();
+            Integer[] playerSetCards = table.playerToCards(playerId);
+            if (checkPlayersGuess(playerSetCards)) {
+                players[playerId].point();
+                updateTableSetWasClaimed(playerSetCards);
+                removeCollisionsInListForGivenSet(playerSetCards);
+                updateTimerDisplay(true);
+            } else {
+                players[playerId].penalty();
             }
+            players[playerId].notify();
             table.writeLock.unlock();
         }
         // TODO implement - Done?
@@ -140,12 +165,11 @@ public class Dealer implements Runnable {
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() {
-        if (table.writeLock.tryLock()) {
-            while (needAndCanDrawAnotherCard()) {
-                table.placeCard(deck.remove(ZERO));
-            }
-            table.writeLock.unlock();
+        table.writeLock.lock();
+        while (needAndCanDrawAnotherCard()) {
+            table.placeCard(deck.remove(ZERO));
         }
+        table.writeLock.unlock();
     }
 
     private boolean needAndCanDrawAnotherCard() {
@@ -190,7 +214,9 @@ public class Dealer implements Runnable {
      */
     private void removeAllCardsFromTable() {
         deck.addAll(table.giveBackCardsToDealer());
+        table.writeLock.lock();
         table.removeAllCards();
+        table.writeLock.unlock();
         shuffleTheDeck();
     }
 
@@ -198,17 +224,19 @@ public class Dealer implements Runnable {
      * Check if a guess of a player forms a set
      */
     private boolean checkPlayersGuess(Integer[] playerGuess) {
-        return env.util.testSet(convertIntToInteger(playerGuess));
+        return env.util.testSet(convertIntegerToInt(playerGuess));
     }
 
     private void updateTableSetWasClaimed(Integer[] cards) {
+        table.writeLock.lock();
         for (Integer card :
                 cards) {
             table.removeCard(table.getSlotFromCard(card));
         }
+        table.writeLock.unlock();
     }
 
-    private int[] convertIntToInteger(Integer[] arr) {
+    private int[] convertIntegerToInt(Integer[] arr) {
         int[] convertedArr = new int[arr.length];
         for (int i = 0; i < arr.length; i++) {
             convertedArr[i] = arr[i];

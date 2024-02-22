@@ -199,6 +199,13 @@ public class Player implements Runnable {
         return score;
     }
 
+    public void joinPlayerThread() {
+        try {
+            playerThread.join();
+        } catch (InterruptedException ignored) {
+        }
+    }
+
     private void handleFreeze() throws InterruptedException {
         while (freezeTimeLeft > ZERO) {
             env.ui.setFreeze(id, freezeTimeLeft);
