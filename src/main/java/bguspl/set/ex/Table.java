@@ -3,6 +3,7 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 
 
@@ -30,7 +31,7 @@ public class Table {
      */
     protected final Integer[] cardToSlot; // slot per card (if any)
 
-    protected List<Integer>[] tokensToPlayers;
+    protected ConcurrentLinkedQueue<Integer>[] tokensToPlayers;
     protected List<Integer>[] playersTokensToSlot;
 
 
@@ -46,9 +47,9 @@ public class Table {
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
-        this.tokensToPlayers = new ArrayList[env.config.tableSize];
+        this.tokensToPlayers = new ConcurrentLinkedQueue[env.config.tableSize];
         for (int i = 0; i < tokensToPlayers.length; i++) {
-            tokensToPlayers[i] = new ArrayList<>();
+            tokensToPlayers[i] = new ConcurrentLinkedQueue<>();
         }
         this.playersTokensToSlot = new ArrayList[env.config.players];
         for (int i = 0; i < playersTokensToSlot.length; i++) {
@@ -162,7 +163,7 @@ public class Table {
     }
 
     private void tokensCleaner(int slot) {
-        tokensToPlayers[slot] = new ArrayList<>();
+        tokensToPlayers[slot] = new ConcurrentLinkedQueue<>();
         for (int i = 0; i < playersTokensToSlot.length; i++) {
             for (int j = 0; j < playersTokensToSlot[i].size(); j++) {
                 if (j == slot) {
@@ -220,7 +221,7 @@ public class Table {
      */
     public boolean removeToken(int player, int slot) {
         if (tokensToPlayers[slot].contains(player)) {
-            tokensToPlayers[slot].remove(tokensToPlayers[slot].indexOf(player));
+            tokensToPlayers[slot].remove(player);
             playersTokensToSlot[player].remove(playersTokensToSlot[player].indexOf(slot));
             env.ui.removeToken(player, slot);
             return true;

@@ -4,6 +4,7 @@ import bguspl.set.Env;
 import com.sun.tools.javac.util.Pair;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -36,7 +37,6 @@ public class Dealer implements Runnable {
     /**
      * The list of sets that player want to check
      */
-    protected List<Integer> playersIdWithSet;
     private final int ZERO = 0;
     private Thread dealerThread;
 
@@ -45,12 +45,14 @@ public class Dealer implements Runnable {
      */
     private long reshuffleTime = Long.MAX_VALUE;
 
+    ConcurrentLinkedQueue<Integer> playersIdWithSet;
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
         this.players = players;
         this.deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
-
+        this.playersIdWithSet = new ConcurrentLinkedQueue<>();
     }
 
     /**
@@ -116,15 +118,15 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
         while (!playersIdWithSet.isEmpty()) {
-            Integer playerId = playersIdWithSet.remove(ZERO);
+//      lock the table
+            Integer playerId = playersIdWithSet.remove();
             Integer[] playerSetCards = table.playerToCards(playerId);
-            if (checkPlayersGuess(playerSetCards)){
+            if (checkPlayersGuess(playerSetCards)) {
+//                lock the queue,
                 players[playerId].point();
                 updateTableSetWasClaimed(playerSetCards);
                 removeCollisionsInListForGivenSet(playerSetCards);
-//                Should update timer, right?
                 updateTimerDisplay(true);
-//                should I call update timer?
             } else {
                 players[playerId].penalty();
             }
@@ -175,7 +177,7 @@ public class Dealer implements Runnable {
     private void updateTimerDisplay(boolean reset) {
         if (reset) reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
         long timeLeft = reshuffleTime - System.currentTimeMillis() > ZERO ? reshuffleTime - System.currentTimeMillis() : ZERO;
-        env.ui.setCountdown(timeLeft, timeLeft<env.config.endGamePauseMillies);
+        env.ui.setCountdown(timeLeft, timeLeft < env.config.endGamePauseMillies);
 
         // TODO implement - DONE
     }
@@ -196,7 +198,7 @@ public class Dealer implements Runnable {
         return env.util.testSet(convertIntToInteger(playerGuess));
     }
 
-    private void updateTableSetWasClaimed (Integer[] cards){
+    private void updateTableSetWasClaimed(Integer[] cards) {
         for (Integer card :
                 cards) {
             table.removeCard(table.getSlotFromCard(card));
