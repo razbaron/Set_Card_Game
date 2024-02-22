@@ -3,6 +3,8 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 
@@ -34,6 +36,9 @@ public class Table {
     protected ConcurrentLinkedQueue<Integer>[] tokensToPlayers;
     protected List<Integer>[] playersTokensToSlot;
 
+    private ReentrantReadWriteLock rwLock;
+    public Lock readLock;
+    public Lock writeLock;
 
     /**
      * Constructor for testing.
@@ -55,6 +60,9 @@ public class Table {
         for (int i = 0; i < playersTokensToSlot.length; i++) {
             playersTokensToSlot[i] = new ArrayList<>();
         }
+        rwLock = new ReentrantReadWriteLock(true);
+        writeLock = rwLock.writeLock();
+        readLock = rwLock.readLock();
     }
 
     /**
@@ -162,6 +170,7 @@ public class Table {
         }
     }
 
+//    clean all tokens on slot
     private void tokensCleaner(int slot) {
         tokensToPlayers[slot] = new ConcurrentLinkedQueue<>();
         for (int i = 0; i < playersTokensToSlot.length; i++) {

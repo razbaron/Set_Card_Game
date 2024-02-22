@@ -118,20 +118,20 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
         while (!playersIdWithSet.isEmpty()) {
-//      lock the table
-            Integer playerId = playersIdWithSet.remove();
-            Integer[] playerSetCards = table.playerToCards(playerId);
-            if (checkPlayersGuess(playerSetCards)) {
-//                lock the queue,
-                players[playerId].point();
-                updateTableSetWasClaimed(playerSetCards);
-                removeCollisionsInListForGivenSet(playerSetCards);
-                updateTimerDisplay(true);
-            } else {
-                players[playerId].penalty();
+            if (table.writeLock.tryLock()){
+                Integer playerId = playersIdWithSet.remove();
+                Integer[] playerSetCards = table.playerToCards(playerId);
+                if (checkPlayersGuess(playerSetCards)) {
+                    players[playerId].point();
+                    updateTableSetWasClaimed(playerSetCards);
+                    removeCollisionsInListForGivenSet(playerSetCards);
+                    updateTimerDisplay(true);
+                } else {
+                    players[playerId].penalty();
+                }
+                players[playerId].notify();
             }
-//            Should I notify a player that it is active again?
-
+            table.writeLock.unlock();
         }
         // TODO implement - Done?
     }
@@ -140,8 +140,11 @@ public class Dealer implements Runnable {
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() {
-        while (needAndCanDrawAnotherCard()) {
-            table.placeCard(deck.remove(ZERO));
+        if (table.writeLock.tryLock()) {
+            while (needAndCanDrawAnotherCard()) {
+                table.placeCard(deck.remove(ZERO));
+            }
+            table.writeLock.unlock();
         }
     }
 
@@ -225,6 +228,7 @@ public class Dealer implements Runnable {
 
         for (Integer element : table.playerToCards(playerIdToCheck)) {
             if (setOfGuess.contains(element)) {
+                players[playerIdToCheck].notify();
                 return true; // Collision found
             }
         }
@@ -266,5 +270,6 @@ public class Dealer implements Runnable {
 
     public void checkMySet(int id) {
         playersIdWithSet.add(id);
+        dealerThread.notify();
     }
 }

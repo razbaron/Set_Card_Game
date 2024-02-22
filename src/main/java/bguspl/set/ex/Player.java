@@ -91,6 +91,7 @@ public class Player implements Runnable {
         while (!terminate) {
             try {
                 if (handleKeyPress()) {
+                    playerThread.wait();
                     handleFreeze();
                     inputQueue.clear();
                 }
@@ -168,7 +169,6 @@ public class Player implements Runnable {
                 dealer.checkMySet(id);
                 return true;
             }
-
         }
         return false;
     }
