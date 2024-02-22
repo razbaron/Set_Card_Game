@@ -36,7 +36,7 @@ public class Dealer implements Runnable {
     /**
      * The list of sets that player want to check
      */
-    protected List<Integer> setsToBeChecked;
+    protected List<Integer> playersIdWithSet;
     private final int ZERO = 0;
     private Thread dealerThread;
 
@@ -108,22 +108,30 @@ public class Dealer implements Runnable {
     private boolean shouldFinish() {
         List<Integer> allCards = deck;
         allCards.addAll(table.giveBackCardsToDealer());
-        return terminate || env.util.findSets(allCards, 1).size() == 0;
+        return terminate || env.util.findSets(allCards, 1).size() == ZERO;
     }
 
     /**
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-        while (!setsToBeChecked.isEmpty()) {
+        while (!playersIdWithSet.isEmpty()) {
+            Integer playerId = playersIdWithSet.remove(ZERO);
+            Integer[] playerSetCards = table.playerToCards(playerId);
+            if (checkPlayersGuess(playerSetCards)){
+                players[playerId].point();
+                updateTableSetWasClaimed(playerSetCards);
+                removeCollisionsInListForGivenSet(playerSetCards);
+//                Should update timer, right?
+                updateTimerDisplay(true);
+//                should I call update timer?
+            } else {
+                players[playerId].penalty();
+            }
+//            Should I notify a player that it is active again?
 
         }
-//        check while queue is empty
-//        handle the set queue
-//        take out the first in line and check if it is a set
-//        if it is no a set a penalty
-//        sometimes should inform the table.
-        // TODO implement
+        // TODO implement - Done?
     }
 
     /**
@@ -182,15 +190,16 @@ public class Dealer implements Runnable {
     }
 
     /**
-     * Get a guess of a player
+     * Check if a guess of a player forms a set
      */
-    private void checkPlayersGuess(Integer playerIdGuess) {
-        Integer[] playerSetCards = table.playerToCards();
-        if (env.util.testSet(convertIntToInteger(playerSetCards))) {
-            players[playerIdGuess].point();
-            removeCollisionsForGivenSet(playerSetCards);
-        } else {
-            players[playerIdGuess].penalty();
+    private boolean checkPlayersGuess(Integer[] playerGuess) {
+        return env.util.testSet(convertIntToInteger(playerGuess));
+    }
+
+    private void updateTableSetWasClaimed (Integer[] cards){
+        for (Integer card :
+                cards) {
+            table.removeCard(table.getSlotFromCard(card));
         }
     }
 
@@ -205,9 +214,8 @@ public class Dealer implements Runnable {
     /**
      * In case of a set check whether other players claimed a set with one of the cards
      */
-    private void removeCollisionsForGivenSet(Integer[] validatedSet) {
-        // Remove the current pair from the list
-        setsToBeChecked.removeIf(playerIdToCheck -> checkCollision(validatedSet, playerIdToCheck));
+    private void removeCollisionsInListForGivenSet(Integer[] validatedSet) {
+        playersIdWithSet.removeIf(playerIdToCheck -> checkCollision(validatedSet, playerIdToCheck));
     }
 
     private boolean checkCollision(Integer[] validatedGuess, Integer playerIdToCheck) {
@@ -255,6 +263,6 @@ public class Dealer implements Runnable {
     }
 
     public void checkMySet(int id) {
-        setsToBeChecked.add(id);
+        playersIdWithSet.add(id);
     }
 }
