@@ -92,8 +92,11 @@ public class Dealer implements Runnable {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
+            table.writeLock.lock();
             removeCardsFromTable();
             placeCardsOnTable();
+            table.writeLock.unlock();
+            updateTimerDisplay(false);
         }
     }
 
@@ -141,9 +144,8 @@ public class Dealer implements Runnable {
     /**
      * Checks cards should be removed from the table and removes them.
      */
-    private void removeCardsFromTable() {
+    private synchronized void removeCardsFromTable() {
         while (!playersIdWithSet.isEmpty()) {
-            table.writeLock.lock();
             Integer playerId = playersIdWithSet.remove();
             Integer[] playerSetCards = table.playerToCards(playerId);
             if (checkPlayersGuess(playerSetCards)) {
@@ -154,8 +156,6 @@ public class Dealer implements Runnable {
             } else {
                 players[playerId].penalty();
             }
-            players[playerId].notify();
-            table.writeLock.unlock();
         }
         // TODO implement - Done?
     }
@@ -188,9 +188,9 @@ public class Dealer implements Runnable {
     /**
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
-    private void sleepUntilWokenOrTimeout() {
+    private synchronized void sleepUntilWokenOrTimeout() {
         try {
-            dealerThread.wait(env.config.tableDelayMillis);
+            this.wait(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {
         }
 
@@ -296,8 +296,8 @@ public class Dealer implements Runnable {
         return maxScore;
     }
 
-    public void checkMySet(int id) {
+    public synchronized void checkMySet(int id) {
         playersIdWithSet.add(id);
-        dealerThread.notify();
+        notifyAll();
     }
 }

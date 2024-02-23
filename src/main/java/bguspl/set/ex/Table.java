@@ -210,7 +210,7 @@ public class Table {
 
     public Integer[] playerToCards(int player) {
         Integer[] cards = new Integer[playersTokensToSlot[player].size()];
-        for (int i = 0; i < playersTokensToSlot.length; i++) {
+        for (int i = 0; i < playersTokensToSlot[player].size(); i++) {
             cards[i] = slotToCard[playersTokensToSlot[player].get(i)];
         }
         return cards;

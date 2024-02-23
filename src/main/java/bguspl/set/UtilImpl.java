@@ -23,7 +23,6 @@ public class UtilImpl implements Util {
             card /= config.featureSize;
         }
     }
-
     @Override
     public int[] cardToFeatures(int card) {
         int[] features = new int[config.featureCount];
