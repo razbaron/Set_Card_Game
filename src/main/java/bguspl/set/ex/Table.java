@@ -174,14 +174,8 @@ public class Table {
 
 //    clean all tokens on slot
     private void tokensCleaner(int slot) {
-        tokensToPlayers[slot] = new ConcurrentLinkedQueue<>();
-        for (int i = 0; i < playersTokensToSlot.length; i++) {
-            for (int j = 0; j < playersTokensToSlot[i].size(); j++) {
-                if (j == slot) {
-                    playersTokensToSlot[i].remove(j);
-                    --j;
-                }
-            }
+        for (Integer id : tokensToPlayers[slot]){
+            removeToken(id,slot);
         }
     }
 
@@ -233,11 +227,12 @@ public class Table {
     public boolean removeToken(int player, int slot) {
         if (tokensToPlayers[slot].contains(player)) {
             tokensToPlayers[slot].remove(player);
-            playersTokensToSlot[player].remove(playersTokensToSlot[player].indexOf(slot));
+            playersTokensToSlot[player].remove((Integer) slot);
             env.ui.removeToken(player, slot);
             return true;
         }
-        return false;
+        throw new NoSuchElementException("removetoken throwed this");
+//        return false;
 
         // TODO implement - DONE
     }

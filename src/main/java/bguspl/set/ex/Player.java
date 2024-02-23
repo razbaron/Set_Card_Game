@@ -143,7 +143,7 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        if (table.readLock.tryLock()) {
+        if (inputQueue.remainingCapacity() > ZERO && table.readLock.tryLock()) {
             try {
                 inputQueue.put(slot);
             } catch (InterruptedException ignored) {
@@ -164,10 +164,13 @@ public class Player implements Runnable {
             slot = inputQueue.take();
         }
         if (table.playerAlreadyPlacedThisToken(id, slot)) {
-            table.removeToken(id, slot);
+            if (!table.removeToken(id, slot)) {
+                System.out.println("Couldn't remove player " + id + " token in slot " + slot);
+            }
+
         } else {
             table.placeToken(id, slot);
-            //In case its a set size - send to dealer to check
+            //In case it's a set size - send to dealer to check
             if (table.playerTokensIsFeatureSize(id)) {
                 dealer.checkMySet(id);
                 sentToDealer = true;
