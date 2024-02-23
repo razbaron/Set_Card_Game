@@ -3,6 +3,7 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.*;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -62,6 +63,7 @@ public class Table {
         }
         rwLock = new ReentrantReadWriteLock(true);
         writeLock = rwLock.writeLock();
+        Condition condition = writeLock.newCondition();
         readLock = rwLock.readLock();
     }
 

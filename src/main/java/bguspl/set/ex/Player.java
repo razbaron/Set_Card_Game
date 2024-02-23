@@ -83,14 +83,17 @@ public class Player implements Runnable {
      * The main player thread of each player starts here (main loop for the player thread).
      */
     @Override
-    public void run() {
+    public synchronized void run() {
         playerThread = Thread.currentThread();
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
         if (!human) createArtificialIntelligence();
 
         while (!terminate) {
             try {
+                table.readLock.lock();
                 if (handleKeyPress()) {
+
+                    wait();
                     handleFreeze();
                     inputQueue.clear();
                 }
@@ -142,44 +145,39 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        if (!table.writeLock.tryLock()) {
-            return;
-        } else {
-            table.writeLock.unlock();
+        if (table.readLock.tryLock()) {
+            try {
+                inputQueue.put(slot);
+            } catch (InterruptedException ignored) {
+            }
+            table.readLock.unlock();
         }
 
-        try {
-            inputQueue.put(slot);
-        } catch (InterruptedException ignored) {
-        }
         // TODO implement - DONE - to add locks
     }
 
 
     private boolean handleKeyPress() throws InterruptedException {
         int slot = inputQueue.take();
+        boolean sentToDealer = false;
+
         //In case of penalty, accept ONLY key presses that remove one of the current tokens
         while (table.playerTokensIsFeatureSize(id) && !table.playerAlreadyPlacedThisToken(id, slot)) {
             slot = inputQueue.take();
         }
-
+//Todo Implement read lock
         //check if remove or place
         if (table.playerAlreadyPlacedThisToken(id, slot)) {
-            table.writeLock.lock();
             table.removeToken(id, slot);
-            table.writeLock.unlock();
             return false;
         } else {
-            table.writeLock.lock();
             table.placeToken(id, slot);
-            table.writeLock.unlock();
             //In case its a set size - send to dealer to check
             if (table.playerTokensIsFeatureSize(id)) {
                 dealer.checkMySet(id);
                 return true;
             }
         }
-
         return false;
     }
 

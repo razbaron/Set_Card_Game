@@ -69,11 +69,11 @@ public class Dealer implements Runnable {
         while (!shouldFinish()) {
             shuffleTheDeck();
             placeCardsOnTable();
-            table.writeLock.unlock();
+//            table.writeLock.unlock();
             updateTimerDisplay(true);
             timerLoop();
             updateTimerDisplay(false);
-            table.writeLock.lock();
+//            table.writeLock.lock();
             removeAllCardsFromTable();
         }
         table.writeLock.unlock();
@@ -92,12 +92,29 @@ public class Dealer implements Runnable {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
-            table.writeLock.lock();
-            removeCardsFromTable();
-            placeCardsOnTable();
-            table.writeLock.unlock();
-            updateTimerDisplay(false);
+            while (!(playersIdWithSet.isEmpty())){
+                if (haveFoundLegalSet()){
+                    removeCardsFromTable();
+                }
+            }
         }
+    }
+
+    private boolean haveFoundLegalSet() {
+        while (!playersIdWithSet.isEmpty()) {
+            Integer playerId = playersIdWithSet.peek();
+            Integer[] playerSetCards = table.playerToCards(playerId);
+            if (checkPlayersGuess(playerSetCards)) {
+                return true;
+            } else {
+                playersIdWithSet.remove();
+                players[playerId].penalty();
+                synchronized (players[playerId]){
+                    notify();
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -144,8 +161,10 @@ public class Dealer implements Runnable {
     /**
      * Checks cards should be removed from the table and removes them.
      */
-    private synchronized void removeCardsFromTable() {
+    private void removeCardsFromTable() {
+        List<Player> playersToWakeUp = new LinkedList<>();
         while (!playersIdWithSet.isEmpty()) {
+            table.writeLock.lock();
             Integer playerId = playersIdWithSet.remove();
             Integer[] playerSetCards = table.playerToCards(playerId);
             if (checkPlayersGuess(playerSetCards)) {
@@ -153,9 +172,23 @@ public class Dealer implements Runnable {
                 updateTableSetWasClaimed(playerSetCards);
                 removeCollisionsInListForGivenSet(playerSetCards);
                 updateTimerDisplay(true);
+                placeCardsOnTable();
             } else {
                 players[playerId].penalty();
             }
+            playersToWakeUp.add(players[playerId]);
+        }
+        table.writeLock.unlock();
+        for (Player player :
+                playersToWakeUp) {
+//            Should synchronize on a real player
+            synchronized (player){
+                player.notify();
+            }
+        }
+//        May be redundant
+        synchronized (table.readLock){
+            notifyAll();
         }
         // TODO implement - Done?
     }
@@ -164,11 +197,11 @@ public class Dealer implements Runnable {
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() {
-        table.writeLock.lock();
+//        table.writeLock.lock();
         while (needAndCanDrawAnotherCard()) {
             table.placeCard(deck.remove(ZERO));
         }
-        table.writeLock.unlock();
+//        table.writeLock.unlock();
     }
 
     private boolean needAndCanDrawAnotherCard() {
