@@ -90,9 +90,7 @@ public class Player implements Runnable {
 
         while (!terminate) {
             try {
-                table.readLock.lock();
                 if (handleKeyPress()) {
-
                     wait();
                     handleFreeze();
                     inputQueue.clear();
@@ -160,25 +158,23 @@ public class Player implements Runnable {
     private boolean handleKeyPress() throws InterruptedException {
         int slot = inputQueue.take();
         boolean sentToDealer = false;
-
+        table.readLock.lock();
         //In case of penalty, accept ONLY key presses that remove one of the current tokens
         while (table.playerTokensIsFeatureSize(id) && !table.playerAlreadyPlacedThisToken(id, slot)) {
             slot = inputQueue.take();
         }
-//Todo Implement read lock
-        //check if remove or place
         if (table.playerAlreadyPlacedThisToken(id, slot)) {
             table.removeToken(id, slot);
-            return false;
         } else {
             table.placeToken(id, slot);
             //In case its a set size - send to dealer to check
             if (table.playerTokensIsFeatureSize(id)) {
                 dealer.checkMySet(id);
-                return true;
+                sentToDealer = true;
             }
         }
-        return false;
+        table.readLock.unlock();
+        return sentToDealer;
     }
 
     /**
@@ -187,19 +183,24 @@ public class Player implements Runnable {
      * @post - the player's score is increased by 1.
      * @post - the player's score is updated in the ui.
      */
-    public void point() {
+    public synchronized void point() {
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
         setFreeze(env.config.pointFreezeMillis);
-
+        wakeUp();
         // TODO implement - DONE
+    }
+
+    public synchronized void wakeUp() {
+        notify();
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
-    public void penalty() {
+    public synchronized void penalty() {
         setFreeze(env.config.penaltyFreezeMillis);
+        wakeUp();
         // TODO implement - DONE
     }
 
