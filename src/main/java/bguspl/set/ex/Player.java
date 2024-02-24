@@ -45,6 +45,7 @@ public class Player implements Runnable {
      */
     private final boolean human;
 
+    private boolean iAmMaster;
     /**
      * True iff game should be terminated.
      */
@@ -56,9 +57,12 @@ public class Player implements Runnable {
     private int score;
 
     private final Dealer dealer;
+
     protected final BlockingQueue<Integer> inputQueue;
     protected long freezeTimeLeft;
     private final int ZERO = 0;
+    private final int ONE = 1;
+
 
     /**
      * The class constructor.
@@ -75,8 +79,8 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         this.dealer = dealer;
-        this.inputQueue = new ArrayBlockingQueue<>(env.config.featureSize);
-
+        this.inputQueue = new ArrayBlockingQueue<>(env.config.featureSize, true);
+        this.iAmMaster = false;
     }
 
     /**
@@ -86,8 +90,7 @@ public class Player implements Runnable {
     public synchronized void run() {
         playerThread = Thread.currentThread();
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
-        if (!human) createArtificialIntelligence();
-
+        if (!human && iAmMaster) createArtificialIntelligence();
         while (!terminate) {
             try {
                 if (handleKeyPress()) {
@@ -113,14 +116,12 @@ public class Player implements Runnable {
         // note: this is a very, very smart AI (!)
         aiThread = new Thread(() -> {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
+
+            Random r = new Random();
+            Player[] aiPlayers = dealer.getAiPlayers();
             while (!terminate) {
-                Random r = new Random();
-                keyPressed(r.nextInt(env.config.tableSize));
-                try {
-                    synchronized (this) {
-                        wait(env.config.tableDelayMillis);
-                    }
-                } catch (InterruptedException ignored) {
+                for (Player ai : aiPlayers){
+                    ai.keyPressed(r.nextInt(env.config.tableSize));
                 }
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
@@ -133,7 +134,8 @@ public class Player implements Runnable {
      */
     public void terminate() {
         terminate = true;
-        if (!human) aiThread.interrupt();
+        if (!human && iAmMaster) aiThread.interrupt();
+//        if (iAmMaster) aiThread.join();
         playerThread.interrupt();
     }
 
@@ -230,5 +232,13 @@ public class Player implements Runnable {
 
     public void setFreeze(long time) {
         freezeTimeLeft = time;
+    }
+
+    public boolean isHuman() {
+        return human;
+    }
+
+    public void setMaster() {
+        iAmMaster = true;
     }
 }

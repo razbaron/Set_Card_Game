@@ -22,6 +22,7 @@ public class Dealer implements Runnable {
      */
     private final Table table;
     private final Player[] players;
+    private final Player[] aiPlayers;
 
     /**
      * The list of card ids that are left in the dealer's deck.
@@ -53,6 +54,10 @@ public class Dealer implements Runnable {
         this.players = players;
         this.deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         this.playersIdWithSet = new ConcurrentLinkedQueue<>();
+        this.aiPlayers = new Player[env.config.computerPlayers];
+
+
+
     }
 
     /**
@@ -92,8 +97,8 @@ public class Dealer implements Runnable {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
             updateTimerDisplay(false);
-            while (!(playersIdWithSet.isEmpty())){
-                if (haveFoundLegalSet()){
+            while (!(playersIdWithSet.isEmpty())) {
+                if (haveFoundLegalSet()) {
                     removeCardsFromTable();
                 }
             }
@@ -109,10 +114,7 @@ public class Dealer implements Runnable {
             } else {
                 playersIdWithSet.remove();
                 players[playerId].penalty();
-//                players[playerId].notify();
-//                synchronized (players[playerId]){
-//                    notify();
-//                }
+
             }
         }
         return false;
@@ -131,6 +133,14 @@ public class Dealer implements Runnable {
     }
 
     private void createPlayersThread() {
+        // constructing aiPlayers array and setting master to implement master-slave
+        int aiIndex = ZERO;
+        for (Player ai : this.players) {
+            if (!ai.isHuman()) {
+                aiPlayers[aiIndex++] = ai;
+            }
+        }
+        if (env.config.computerPlayers > ZERO) aiPlayers[ZERO].setMaster();
         for (int i = 0; i < players.length; i++) {
             new Thread(players[i], "player " + i).start();
         }
@@ -315,5 +325,9 @@ public class Dealer implements Runnable {
     public synchronized void checkMySet(int id) {
         playersIdWithSet.add(id);
         notifyAll();
+    }
+
+    public Player[] getAiPlayers() {
+        return aiPlayers;
     }
 }
