@@ -168,7 +168,7 @@ public class Table {
 
     public void removeAllCards() {
         for (int i = 0; i < env.config.tableSize; i++) {
-            removeCard(i);
+            if(slotToCard[i]!=null) removeCard(i);
         }
     }
 
