@@ -101,7 +101,7 @@ public class Player implements Runnable {
             } catch (InterruptedException ignored) {
             }
         }
-        if (!human) try {
+        if (!human && iAmMaster) try {
             aiThread.join();
         } catch (InterruptedException ignored) {
         }
