@@ -231,8 +231,7 @@ public class Table {
             env.ui.removeToken(player, slot);
             return true;
         }
-        throw new NoSuchElementException("removetoken throwed this");
-//        return false;
+        return false;
 
         // TODO implement - DONE
     }

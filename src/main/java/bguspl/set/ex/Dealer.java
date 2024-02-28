@@ -150,6 +150,7 @@ public class Dealer implements Runnable {
         for (int i = players.length - ONE; i >= ZERO; i--) {
             players[i].terminate();
         }
+
     }
 
     private void joinPlayers() {
@@ -184,8 +185,7 @@ public class Dealer implements Runnable {
         table.writeLock.unlock();
         players[playerId].point();
 
-
-        // TODO implement - Done?
+        // TODO implement - DONE
     }
 
     /**
@@ -222,7 +222,7 @@ public class Dealer implements Runnable {
         } catch (InterruptedException ignored) {
         }
 
-        // TODO implement
+        // TODO implement - DONE
     }
 
     /**

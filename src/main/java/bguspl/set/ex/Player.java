@@ -120,7 +120,7 @@ public class Player implements Runnable {
             Random r = new Random();
             Player[] aiPlayers = dealer.getAiPlayers();
             while (!terminate) {
-                for (Player ai : aiPlayers){
+                for (Player ai : aiPlayers) {
                     ai.keyPressed(r.nextInt(env.config.tableSize));
                 }
             }
@@ -135,7 +135,6 @@ public class Player implements Runnable {
     public void terminate() {
         terminate = true;
         if (!human && iAmMaster) aiThread.interrupt();
-//        if (iAmMaster) aiThread.join();
         playerThread.interrupt();
     }
 
@@ -153,7 +152,7 @@ public class Player implements Runnable {
             table.readLock.unlock();
         }
 
-        // TODO implement - DONE - to add locks
+        // TODO implement - DONE
     }
 
 
